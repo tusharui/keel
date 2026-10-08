@@ -109,6 +109,22 @@ class ReliabilityConfig(_Base):
         return self
 
 
+class PolicyConfig(_Base):
+    rate_limit_per_s: float = Field(default=50.0, gt=0.0)
+    rate_limit_burst: float = Field(default=100.0, gt=0.0)
+    default_budget_micros: int = Field(default=100_000_000, ge=0)
+
+    @model_validator(mode="after")
+    def _burst_covers_a_second_of_traffic(self) -> Self:
+        if self.rate_limit_burst < self.rate_limit_per_s:
+            raise ValueError(
+                f"rate_limit_burst={self.rate_limit_burst} is below "
+                f"rate_limit_per_s={self.rate_limit_per_s}; the limiter would refuse "
+                "traffic it is nominally allowing"
+            )
+        return self
+
+
 class Settings(_Base):
     database_url: str = "sqlite+aiosqlite:///./keel.db"
     log_level: Literal["debug", "info", "warning", "error"] = "info"
@@ -118,6 +134,11 @@ class Settings(_Base):
     scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
     cache: CacheConfig = Field(default_factory=CacheConfig)
     reliability: ReliabilityConfig = Field(default_factory=ReliabilityConfig)
+    policy: PolicyConfig = Field(default_factory=PolicyConfig)
+
+    @property
+    def context_length(self) -> int:
+        return self.engine.context_length
 
     @model_validator(mode="after")
     def _scheduler_fits_the_pool(self) -> Self:

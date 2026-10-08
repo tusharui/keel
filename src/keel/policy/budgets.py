@@ -44,7 +44,17 @@ class Budget:
 
 @dataclass(slots=True)
 class BudgetTracker:
+    """Per-tenant spend caps.
+
+    ``default_limit_micros`` decides what happens to a tenant nobody configured.
+    With it set, an unknown tenant gets a cap on first use rather than an error,
+    which is what a gateway needs: refusing service because a tenant row is
+    missing is an outage, not a safeguard. Left as None the tracker stays strict,
+    which is what tests and migrations want.
+    """
+
     clock: Clock = field(default_factory=default_clock)
+    default_limit_micros: int | None = None
     _budgets: dict[str, Budget] = field(default_factory=dict)
     _period: str = ""
 
@@ -80,8 +90,19 @@ class BudgetTracker:
         self._roll_if_needed()
         budget = self._budgets.get(tenant_id)
         if budget is None:
-            raise KeyError(f"no budget configured for tenant {tenant_id!r}")
+            if self.default_limit_micros is None:
+                raise KeyError(f"no budget configured for tenant {tenant_id!r}")
+            budget = Budget(
+                tenant_id=tenant_id,
+                limit_micros=self.default_limit_micros,
+                period_key=self._period,
+            )
+            self._budgets[tenant_id] = budget
         return budget
+
+    @property
+    def tenants(self) -> set[str]:
+        return set(self._budgets)
 
     def remaining_micros(self, tenant_id: str) -> int:
         return self.get(tenant_id).remaining_micros
