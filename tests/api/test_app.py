@@ -167,6 +167,20 @@ async def test_run_executes_the_dag(client: httpx.AsyncClient) -> None:
 async def test_unknown_dag_is_404(client: httpx.AsyncClient) -> None:
     response = await client.post("/v1/runs", json={"dag": "nope"})
     assert response.status_code == 404
+    assert "unknown dag" in response.json()["detail"]
+
+
+async def test_404_is_documented_in_the_schema(client: httpx.AsyncClient) -> None:
+    """A hand-built JSONResponse is invisible to the docs, which is how a
+    documented endpoint ends up with an undocumented failure mode."""
+    paths = (await client.get("/openapi.json")).json()["paths"]
+    assert "404" in paths["/v1/runs"]["post"]["responses"]
+
+
+async def test_run_request_example_uses_a_registered_dag(client: httpx.AsyncClient) -> None:
+    """The example in the docs should not 404 for anyone following them."""
+    schema = (await client.get("/openapi.json")).json()["components"]["schemas"]
+    assert schema["RunRequest"]["properties"]["dag"]["default"] == "demo"
 
 
 async def test_rerun_reuses_persisted_nodes(client: httpx.AsyncClient) -> None:
@@ -191,6 +205,33 @@ async def test_traces_are_recorded(client: httpx.AsyncClient) -> None:
     generate = next(s for s in spans if s["name"] == "generate")
     completion = next(s for s in spans if s["name"] == "completion")
     assert generate["parent_id"] == completion["span_id"]
+
+
+async def test_trace_durations_are_measured(client: httpx.AsyncClient) -> None:
+    """The service never sleeps for simulated latency, so a tracer sharing the
+    simulation clock would record every span as 0ms."""
+    await client.post("/v1/completions", json={"prompt": "time me", "max_tokens": 8})
+    spans = (await client.get("/v1/traces")).json()
+    assert all(s["duration_ms"] > 0 for s in spans)
+
+
+async def test_trace_carries_the_simulated_figures(client: httpx.AsyncClient) -> None:
+    """Wall-clock says how long the simulation took; the simulated numbers say
+    what a real backend would have cost, which is the useful one here."""
+    await client.post("/v1/completions", json={"prompt": "sim me", "max_tokens": 8})
+    spans = (await client.get("/v1/traces")).json()
+    generate = next(s for s in spans if s["name"] == "generate")
+    assert generate["attributes"]["sim_ttft_ms"] > 0
+    assert generate["attributes"]["sim_duration_ms"] > 0
+
+
+async def test_deadline_is_not_a_completion_field(client: httpx.AsyncClient) -> None:
+    """It is scheduler state. Accepting it here and ignoring it would be a field
+    that looks like a feature and does nothing."""
+    properties = (await client.get("/openapi.json")).json()["components"]["schemas"][
+        "CompletionRequest"
+    ]["properties"]
+    assert "deadline_ms" not in properties
 
 
 # --- schema ---------------------------------------------------------------------------

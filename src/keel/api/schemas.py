@@ -10,7 +10,6 @@ class CompletionRequest(BaseModel):
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
     stop: tuple[str, ...] = ()
     tenant_id: str = "default"
-    deadline_ms: float | None = None
     allow_semantic_cache: bool = True
 
 
@@ -49,8 +48,8 @@ class HealthResponse(BaseModel):
 
 
 class RunRequest(BaseModel):
-    dag: str
-    partition: str | None = None
+    dag: str = Field(default="demo", examples=["demo"])
+    partition: str | None = Field(default=None, examples=["2026-01-01"])
     inputs: dict[str, object] = Field(default_factory=dict)
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from keel import __version__
@@ -11,6 +11,7 @@ from keel.api.deps import Service, error_status
 from keel.api.schemas import (
     CompletionRequest,
     CompletionResponse,
+    ErrorResponse,
     HealthResponse,
     MetricsResponse,
     NodeView,
@@ -75,7 +76,15 @@ def create_app(service: Service | None = None) -> FastAPI:
             version=__version__,
         )
 
-    @app.post("/v1/completions", response_model=CompletionResponse)
+    @app.post(
+        "/v1/completions",
+        response_model=CompletionResponse,
+        responses={
+            400: {"model": ErrorResponse, "description": "Malformed request"},
+            402: {"model": ErrorResponse, "description": "Tenant budget exhausted"},
+            429: {"model": ErrorResponse, "description": "Rate limited"},
+        },
+    )
     async def completions(
         request: Request, body: CompletionRequest
     ) -> CompletionResponse | JSONResponse:
@@ -132,11 +141,25 @@ def create_app(service: Service | None = None) -> FastAPI:
             remaining_budget_micros=remaining,
         )
 
-    @app.post("/v1/runs", response_model=RunResponse)
-    async def start_run(request: Request, body: RunRequest) -> RunResponse | JSONResponse:
+    @app.post(
+        "/v1/runs",
+        response_model=RunResponse,
+        responses={
+            404: {"model": ErrorResponse, "description": "No such DAG is registered"},
+            500: {"model": ErrorResponse, "description": "A node failed"},
+        },
+    )
+    async def start_run(request: Request, body: RunRequest) -> RunResponse:
         svc = current(request)
         if body.dag not in svc.dags:
-            return JSONResponse(status_code=404, content={"detail": f"unknown dag {body.dag}"})
+            # Raising rather than returning a response keeps the 404 in the
+            # generated schema. Hand-built JSONResponse responses are invisible to
+            # the docs, which is how a documented endpoint ends up with an
+            # undocumented failure mode.
+            raise HTTPException(
+                status_code=404,
+                detail=f"unknown dag {body.dag!r}; registered: {sorted(svc.dags)}",
+            )
         run_id, outcome, reused = await svc.run_dag(body.dag, body.partition, body.inputs)
         return RunResponse(
             run_id=run_id,

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from keel.cache.tiers import TieredCache
-from keel.clock import Clock, ManualClock
+from keel.clock import Clock, ManualClock, SystemClock
 from keel.config import Settings, get_settings
 from keel.dag.executor import Executor, RunResult
 from keel.dag.graph import DAG
@@ -105,7 +105,11 @@ class Service:
             budgets=BudgetTracker(
                 clock=clock, default_limit_micros=resolved.policy.default_budget_micros
             ),
-            tracer=Tracer(clock=clock),
+            # Tracing gets a real clock rather than the service's virtual one.
+            # The service deliberately does not sleep for simulated latency, so
+            # sharing the manual clock would record every span as 0ms and the
+            # trace would carry structure but no timing at all.
+            tracer=Tracer(clock=SystemClock()),
             db_engine=db_engine,
             sessions=build_session_factory(db_engine),
             clock=clock,
@@ -175,9 +179,17 @@ class Service:
                     cost_micros=0,
                 )
 
-            with self.tracer.span("generate"):
+            with self.tracer.span("generate") as span:
                 generation = self.engine.run(
                     self.engine.tokenizer.encode(prompt), max_tokens, stop=stop
+                )
+                # Wall-clock duration says how long the simulation took to compute.
+                # The simulated figures say what it cost a real backend, which is
+                # the number an operator actually needs from this endpoint.
+                span.attributes.update(
+                    sim_ttft_ms=generation.ttft_ms,
+                    sim_duration_ms=generation.duration_ms,
+                    sim_completion_tokens=generation.completion_tokens,
                 )
 
             text = self.engine.tokenizer.decode(generation.token_ids)
