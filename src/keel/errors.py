@@ -37,6 +37,14 @@ class EngineError(KeelError):
     retryable: ClassVar[bool] = True
 
 
+class OutOfBlocks(EngineError):
+    """No free or evictable KV blocks remain.
+
+    Retryable in the sense that the scheduler can free memory by preempting a
+    sequence, not in the sense that the same request will succeed untouched.
+    """
+
+
 class ContextLengthExceeded(EngineError):
     """Prompt plus requested completion does not fit the model's window.
 
