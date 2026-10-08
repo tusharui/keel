@@ -1,7 +1,8 @@
 # keel
 
-Scheduling and control plane for LLM inference: continuous batching, paged KV cache with prefix
-sharing, and preemption. Simulated backend, so it runs with no GPU or API key.
+An LLM inference control plane you can actually run: continuous batching, KV paging, preemption,
+quota enforcement. The benchmark shows where maximising tokens/sec and meeting a latency SLO come
+apart. No GPU or API key needed.
 
 `keel` treats inference as a **scheduling problem**, not an API call. It sits in front of a
 model backend and owns the decisions that actually determine cost and latency: how requests
