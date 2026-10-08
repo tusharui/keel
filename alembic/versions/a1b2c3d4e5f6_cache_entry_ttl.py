@@ -9,6 +9,7 @@ SQLite cannot drop or alter a column in place, so the table has to be rebuilt.
 Autogenerate emits a plain ALTER that works on Postgres and fails on the SQLite
 path that most people actually run in development.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

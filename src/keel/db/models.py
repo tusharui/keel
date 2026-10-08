@@ -185,7 +185,10 @@ class Node(Base):
         _enum(NodeStatus), nullable=False, default=NodeStatus.PENDING
     )
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    input_hash: Mapped[str] = mapped_column(HASH, nullable=False, default="")
+    # Content hash of everything determining this node output: dag, partition,
+    # node name, declared version, and upstream outputs. A matching signature in
+    # an earlier successful run means the work can be reused instead of redone.
+    signature: Mapped[str] = mapped_column(HASH, nullable=False, default="", index=True)
     output: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
