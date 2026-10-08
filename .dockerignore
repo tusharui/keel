@@ -1,0 +1,23 @@
+.venv/
+.git/
+.github/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime image, not a test image. CI runs the suite against the source tree.
+tests/
+
+*.db
+*.db-journal
+*.sqlite3
+.env
+.env.*

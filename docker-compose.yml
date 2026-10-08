@@ -1,0 +1,24 @@
+# Default profile: nothing to install but Docker.
+#
+#   docker compose up --build
+#   open http://localhost:8000/docs
+#
+# Runs on SQLite inside the container. Data is ephemeral, which is the right
+# trade for a demo: a fresh stack comes up in one command with no volume to
+# clean up and no stale state to explain. For Postgres, layer the overlay:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+
+services:
+  api:
+    build:
+      context: .
+    image: keel:local
+    environment:
+      # Stated here as well as in the Dockerfile so the wiring is visible in one
+      # place rather than two.
+      KEEL_DATABASE_URL: sqlite+aiosqlite:////app/data/keel.db
+      KEEL_LOG_LEVEL: info
+      KEEL_LOG_JSON: "true"
+    ports:
+      - "8000:8000"

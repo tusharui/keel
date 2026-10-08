@@ -32,6 +32,26 @@ def test_bench_emits_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert {"scenario", "makespan_s", "goodput_tokens_per_second"} <= payload[0].keys()
 
 
+def test_project_root_prefers_the_environment(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    """In a container the package is installed into site-packages, so walking up
+    from cli.py lands somewhere unrelated to the project."""
+    from keel.cli import _project_root
+
+    monkeypatch.setenv("KEEL_PROJECT_ROOT", str(tmp_path))
+    assert _project_root() == tmp_path
+
+
+def test_project_root_falls_back_to_the_source_tree(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from keel.cli import _project_root
+
+    monkeypatch.delenv("KEEL_PROJECT_ROOT", raising=False)
+    root = _project_root()
+    assert (root / "alembic.ini").exists()
+    assert (root / "alembic" / "versions").is_dir()
+
+
 def test_db_upgrade_creates_schema(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     from sqlalchemy import create_engine, inspect
 

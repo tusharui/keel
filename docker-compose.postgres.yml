@@ -1,0 +1,35 @@
+# Postgres parity overlay. Layer it over the default file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+#
+# The point of running this is to catch dialect bugs. SQLite accepts a schema
+# Postgres rejects, and vice versa, so the default profile cannot prove the
+# models are correct on both.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: keel
+      POSTGRES_PASSWORD: keel
+      POSTGRES_DB: keel
+    healthcheck:
+      # Postgres accepts connections briefly before it can authenticate, so a
+      # port check alone leaves a startup race that only appears on a cold
+      # container. pg_isready queries the database, so it does not.
+      test: ["CMD-SHELL", "pg_isready -U keel -d keel"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    environment:
+      KEEL_DATABASE_URL: postgresql+asyncpg://keel:keel@db:5432/keel
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

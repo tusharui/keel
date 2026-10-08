@@ -79,6 +79,34 @@ src/keel/
 
 ## Running it
 
+### With Docker
+
+Nothing to install but Docker. The image pins the Python version and its Debian
+variant, so it does not drift between machines.
+
+```bash
+docker compose up --build
+open http://localhost:8000/docs
+```
+
+That is the whole setup. Migrations run before the server starts, so a fresh
+stack comes up with a usable database. Data is ephemeral — fine for a demo, and
+it means there is no stale state to explain.
+
+For Postgres, which is the point of running it at all: SQLite accepts schemas
+Postgres rejects and vice versa, so the default profile cannot prove the models
+are right on both.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+```
+
+The api waits on Postgres's own readiness query rather than a port check, because
+Postgres accepts connections slightly before it can authenticate, and that race
+only shows up on a cold container.
+
+### Without Docker
+
 Requires Python 3.12+. SQLite by default, so there is nothing else to install.
 
 ```bash
@@ -88,11 +116,11 @@ python -m venv .venv
 ./.venv/bin/keel demo                  # smallest end-to-end scenario
 ./.venv/bin/keel bench --requests 150  # the table above
 ./.venv/bin/keel db head               # create the schema
-./.venv/bin/uvicorn keel.api.app:app  # http control plane
+./.venv/bin/uvicorn keel.api.app:app   # http control plane
 ```
 
-`keel demo` prints per-request latency and the KV prefix-cache hit rate for six requests
-sharing a system prompt.
+`keel demo` prints per-request latency and the KV prefix-cache hit rate for six
+requests sharing a system prompt.
 
 Quality gates, all of which CI enforces on every push:
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -8,8 +9,17 @@ from keel import __version__
 
 
 def _project_root() -> Path:
-    # parents[2] is the repository root from src/keel/cli.py. Kept so `keel db`
-    # finds alembic.ini whether invoked from the venv or an editable install.
+    """Where alembic.ini and the versions directory live.
+
+    Checked against the environment first, because in a container the package is
+    installed into site-packages and walking up three levels from cli.py lands
+    somewhere unrelated to the project.
+    """
+    override = os.environ.get("KEEL_PROJECT_ROOT")
+    if override:
+        return Path(override)
+    # parents[2] is the repository root from src/keel/cli.py. Correct for an
+    # editable or source checkout, which is how this is normally run.
     return Path(__file__).resolve().parents[2]
 
 
