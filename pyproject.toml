@@ -69,8 +69,8 @@ known-first-party = ["keel"]
 # Exceptions here name conditions, not error types. Suffixed with `Error` they
 # stutter (`ContextLengthExceededError`) and read worse at every `except` site.
 "src/keel/errors.py" = ["N818"]
-# Workload generation and jitter need reproducibility, not unpredictability.
-"bench/**" = ["S311"]
+# Workload generation needs reproducibility, not unpredictability.
+"src/keel/bench/**" = ["S311"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -79,7 +79,7 @@ mypy_path = "src"
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["tests.*", "bench.*"]
+module = ["tests.*"]
 disallow_untyped_defs = false
 
 [tool.coverage.run]

@@ -51,11 +51,10 @@ class ManualClock:
     def now(self) -> float:
         return self._now
 
-    def advance(self, seconds: float) -> float:
+    def advance(self, seconds: float) -> None:
         if seconds < 0:
             raise ValueError("cannot advance a clock backwards")
         self._now += seconds
-        return self._now
 
 
 _default = SystemClock()

@@ -5,8 +5,7 @@ import json
 import sys
 from dataclasses import dataclass
 
-from bench.workload import WorkloadSpec, generate
-
+from keel.bench.workload import WorkloadSpec, generate
 from keel.clock import ManualClock
 from keel.config import SchedulerConfig
 from keel.scheduler.metrics import ServingMetrics

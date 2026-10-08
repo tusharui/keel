@@ -9,7 +9,7 @@ def test_manual_clock_only_moves_when_told() -> None:
     clock = ManualClock()
     assert clock.now() == 0.0
 
-    assert clock.advance(0.5) == 0.5
+    clock.advance(0.5)
     assert clock.now() == 0.5
 
     clock.advance(0.25)
