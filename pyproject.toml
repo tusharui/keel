@@ -14,7 +14,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    "fastapi>=0.115",
+    "fastapi>=0.142.2",
     "uvicorn[standard]>=0.30",
     "sqlalchemy[asyncio]>=2.0.35",
     "alembic>=1.13",
