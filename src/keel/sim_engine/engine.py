@@ -39,6 +39,25 @@ class Generation:
         return (self.duration_ms - self.ttft_ms) / (self.completion_tokens - 1)
 
 
+def longest_stop(stops: tuple[str, ...]) -> int:
+    return max((len(s) for s in stops), default=0)
+
+
+def find_stop(text: str, stops: tuple[str, ...], search_from: int) -> tuple[int, int] | None:
+    """Earliest stop sequence at or after ``search_from``, as (index, length).
+
+    The caller is responsible for a window that reaches back past the boundary
+    where the newest token was appended. A stop sequence can straddle that
+    boundary, and a window starting at the new tail will never find it.
+    """
+    earliest: tuple[int, int] | None = None
+    for stop in stops:
+        index = text.find(stop, search_from)
+        if index != -1 and (earliest is None or index < earliest[0]):
+            earliest = (index, len(stop))
+    return earliest
+
+
 class InferenceEngine:
     """Prefill and decode for one sequence at a time.
 
@@ -72,8 +91,16 @@ class InferenceEngine:
         return self._kv
 
     @property
+    def tokenizer(self) -> Tokenizer:
+        return self._tokenizer
+
+    @property
     def device(self) -> DeviceProfile:
         return self._device
+
+    def sample(self, seq: SequenceState) -> int:
+        """Draw the next token for a sequence whose prefill has completed."""
+        return self._model.next_token(seq.tokens[-1], seq.num_tokens - 1)
 
     def prefill(self, seq: SequenceState, num_tokens: int) -> float:
         """Charge the prefill pass. Time advances even though nothing is emitted."""
@@ -100,19 +127,6 @@ class InferenceEngine:
             seq.pending_token = self._model.next_token(seq.pending_token, seq.num_tokens)
         self._clock.advance(cost)
         return cost
-
-    def _longest_stop(self, stops: tuple[str, ...]) -> int:
-        return max((len(s) for s in stops), default=0)
-
-    def _find_stop(
-        self, text: str, stops: tuple[str, ...], search_from: int
-    ) -> tuple[int, int] | None:
-        earliest: tuple[int, int] | None = None
-        for stop in stops:
-            index = text.find(stop, search_from)
-            if index != -1 and (earliest is None or index < earliest[0]):
-                earliest = (index, len(stop))
-        return earliest
 
     def run(
         self,
@@ -150,9 +164,7 @@ class InferenceEngine:
                 # Only the tail can hold a match that just appeared, but the
                 # window has to reach back past the boundary: a stop sequence
                 # can straddle the point where the last token was appended.
-                found = self._find_stop(
-                    text, stop, max(0, previous_len - self._longest_stop(stop) + 1)
-                )
+                found = find_stop(text, stop, max(0, previous_len - longest_stop(stop) + 1))
                 if found is not None:
                     text = text[: found[0]]
                     finish = FinishReason.STOP

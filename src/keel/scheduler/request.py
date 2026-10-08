@@ -31,6 +31,10 @@ class InferenceRequest:
     state: RequestState = RequestState.WAITING
     seq: SequenceState | None = None
     output: list[int] = field(default_factory=list)
+    # Accumulated incrementally. Stop-sequence matching needs the rendered text,
+    # and re-decoding the whole output every step turns that into quadratic work
+    # on exactly the long generations that matter.
+    text: str = ""
     finish_reason: FinishReason | None = None
 
     enqueued_at_ms: float = 0.0

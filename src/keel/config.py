@@ -52,6 +52,7 @@ class EngineConfig(_Base):
 class SchedulerConfig(_Base):
     max_num_seqs: int = Field(default=64, ge=1)
     max_num_batched_tokens: int = Field(default=8192, ge=1)
+    chunked_prefill_tokens: int = Field(default=2048, ge=1)
     policy: AdmissionPolicy = "fcfs"
     enable_preemption: bool = True
     default_max_tokens: int = Field(default=256, ge=1)
@@ -63,6 +64,12 @@ class SchedulerConfig(_Base):
                 "max_num_batched_tokens must leave room for at least one decode "
                 "token after a full chunked-prefill pass, otherwise prefill can "
                 "never yield and every request stalls"
+            )
+        if self.chunked_prefill_tokens > self.max_num_batched_tokens:
+            raise ValueError(
+                f"chunked_prefill_tokens={self.chunked_prefill_tokens} exceeds the "
+                f"batch budget {self.max_num_batched_tokens}; the chunk could never "
+                "be admitted in one pass"
             )
         return self
 
