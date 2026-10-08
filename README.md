@@ -93,6 +93,13 @@ That is the whole setup. Migrations run before the server starts, so a fresh
 stack comes up with a usable database. Data is ephemeral — fine for a demo, and
 it means there is no stale state to explain.
 
+If 8000 is already taken, which it usually is:
+
+```bash
+KEEL_PORT=8010 docker compose up --build     # macOS / Linux
+$env:KEEL_PORT="8010"; docker compose up --build   # PowerShell
+```
+
 For Postgres, which is the point of running it at all: SQLite accepts schemas
 Postgres rejects and vice versa, so the default profile cannot prove the models
 are right on both.

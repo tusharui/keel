@@ -59,7 +59,11 @@ jobs:
           KEEL_DATABASE_URL: sqlite+aiosqlite:///./test.db
       - name: Test against Postgres
         if: matrix.python-version == '3.12'
-        run: pytest tests/db -q
+        # The whole suite, not just tests/db. A dialect bug rarely lives in the
+        # persistence tests: it shows up wherever a query, a type or a constraint
+        # behaves differently, and narrowing this job to one directory is what
+        # let a full-suite Postgres failure sit unnoticed.
+        run: pytest --cov=keel --cov-report=term-missing --cov-fail-under=80
         env:
           KEEL_DATABASE_URL: postgresql+asyncpg://keel:keel@localhost:5432/keel_test
 
