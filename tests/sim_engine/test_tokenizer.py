@@ -45,8 +45,8 @@ def test_punctuation_splits_from_words(tokenizer: Tokenizer) -> None:
     assert len(tokenizer.encode("hi, ok!")) >= 4
 
 
-def test_unknown_ids_decode_to_nothing(tokenizer: Tokenizer) -> None:
-    assert tokenizer.decode([999_999]) == ""
+def test_unassigned_ids_render_as_a_visible_placeholder(tokenizer: Tokenizer) -> None:
+    assert tokenizer.decode([999_999]) == "<999999>"
 
 
 def test_roughly_four_characters_per_token(tokenizer: Tokenizer) -> None:

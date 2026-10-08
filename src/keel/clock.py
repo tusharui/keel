@@ -17,7 +17,9 @@ class Clock(Protocol):
         """Monotonic seconds. Only differences between two values are meaningful."""
         ...
 
-    def sleep(self, seconds: float) -> None: ...
+    def advance(self, seconds: float) -> None:
+        """Move time forward by the given amount."""
+        ...
 
 
 class SystemClock:
@@ -26,7 +28,7 @@ class SystemClock:
     def now(self) -> float:
         return time.perf_counter()
 
-    def sleep(self, seconds: float) -> None:
+    def advance(self, seconds: float) -> None:
         if seconds > 0:
             time.sleep(seconds)
 
@@ -48,9 +50,6 @@ class ManualClock:
 
     def now(self) -> float:
         return self._now
-
-    def sleep(self, seconds: float) -> None:
-        self.advance(seconds)
 
     def advance(self, seconds: float) -> float:
         if seconds < 0:

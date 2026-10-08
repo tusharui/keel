@@ -74,7 +74,11 @@ class Tokenizer:
                     continue
                 out.append("<eos>")
                 continue
-            out.append(self._id_to_piece.get(token, ""))
+            # Ids the tokenizer never assigned are still rendered rather than
+            # dropped. The simulated model draws from the whole vocabulary, and
+            # silently emitting nothing for most of its output would make every
+            # length and stop-sequence assertion meaningless.
+            out.append(self._id_to_piece.get(token, f"<{token}>"))
         return "".join(out)
 
     def count_tokens(self, text: str) -> int:

@@ -160,6 +160,10 @@ class SequenceState:
     block_table: list[int] = field(default_factory=list)
     shared_prefix_blocks: int = 0
     prefill_completed: bool = False
+    # Sampled from the model but not yet through it. Each decode step pushes it
+    # into the KV cache and replaces it, so the cache always trails the token
+    # stream by exactly one.
+    pending_token: int = 0
 
     @property
     def num_tokens(self) -> int:
@@ -168,6 +172,14 @@ class SequenceState:
     @property
     def num_blocks(self) -> int:
         return len(self.block_table)
+
+    @property
+    def output_tokens(self) -> list[int]:
+        return self.tokens[self.prompt_len :]
+
+    @property
+    def num_output_tokens(self) -> int:
+        return len(self.tokens) - self.prompt_len
 
 
 class KVCacheManager:
