@@ -78,7 +78,11 @@ class CacheConfig(_Base):
     exact_max_entries: int = Field(default=1024, ge=0)
     prefix_enabled: bool = True
     semantic_enabled: bool = False
-    semantic_threshold: float = Field(default=0.95, ge=0.0, le=1.0)
+    # Measured against the hashed-trigram embedder rather than picked by feel.
+    # "capital of France" against "capital of Spain" scores ~0.77, so anything
+    # below that serves the wrong country; a case-and-punctuation variant of the
+    # same question scores ~0.95. 0.90 sits in that gap.
+    semantic_threshold: float = Field(default=0.90, ge=0.0, le=1.0)
     semantic_max_entries: int = Field(default=512, ge=0)
 
     @model_validator(mode="after")
