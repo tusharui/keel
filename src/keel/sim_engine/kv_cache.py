@@ -314,11 +314,11 @@ class KVCacheManager:
 
     def can_fit(self, prompt: list[int], max_tokens: int) -> bool:
         # Shared prefix blocks are already resident, so they cost no new memory.
-        shared = self._match_prefix_estimate(prompt)
-        needed = self.blocks_required(len(prompt) + max_tokens) - shared
+        needed = self.blocks_required(len(prompt) + max_tokens) - self.shared_prefix_blocks(prompt)
         return needed <= self.num_free_blocks
 
-    def _match_prefix_estimate(self, tokens: list[int]) -> int:
+    def shared_prefix_blocks(self, tokens: list[int]) -> int:
+        """How many leading full blocks are already cached. Read-only."""
         size = self.block_size
         count = 0
         parent: int | None = None
