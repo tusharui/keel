@@ -1,6 +1,7 @@
 # keel
 
-A control plane for LLM inference workloads.
+Scheduling and control plane for LLM inference: continuous batching, paged KV cache with prefix
+sharing, and preemption. Simulated backend, so it runs with no GPU or API key.
 
 `keel` treats inference as a **scheduling problem**, not an API call. It sits in front of a
 model backend and owns the decisions that actually determine cost and latency: how requests
