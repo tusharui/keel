@@ -21,6 +21,10 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+    ports:
+      # Exposed so the host can inspect it with psql and so the test suite can be
+      # pointed at it, which is what the Postgres job in CI does.
+      - "${KEEL_DB_PORT:-5439}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 

@@ -21,4 +21,5 @@ services:
       KEEL_LOG_LEVEL: info
       KEEL_LOG_JSON: "true"
     ports:
-      - "8000:8000"
+      # Overridable because 8000 is commonly taken. KEEL_PORT=8010 docker compose up
+      - "${KEEL_PORT:-8000}:8000"

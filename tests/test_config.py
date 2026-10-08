@@ -17,8 +17,18 @@ from keel.errors import ConfigError
 
 def test_defaults_are_usable() -> None:
     settings = Settings()
-    assert settings.database_url.startswith("sqlite+")
     assert settings.scheduler.max_num_seqs <= settings.engine.kv_blocks
+
+
+def test_database_url_defaults_to_sqlite() -> None:
+    """Checked against the field default, not a constructed Settings.
+
+    Settings() resolves the environment, so asserting on the instance fails for
+    anyone with KEEL_DATABASE_URL set to Postgres, which is exactly what the
+    Postgres job in CI does.
+    """
+    default = Settings.model_fields["database_url"].default
+    assert str(default).startswith("sqlite+")
 
 
 def test_env_prefix_is_applied(monkeypatch: pytest.MonkeyPatch) -> None:
