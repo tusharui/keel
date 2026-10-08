@@ -79,8 +79,31 @@ def device() -> DeviceProfile:
     return DeviceProfile()
 
 
-def test_prefill_cost_is_linear_in_tokens(device: DeviceProfile) -> None:
-    assert device.prefill_seconds(2000) == pytest.approx(2 * device.prefill_seconds(1000))
+def test_prefill_marginal_cost_is_linear_in_tokens(device: DeviceProfile) -> None:
+    """Per-token cost is linear. Total cost is not, because each forward pass
+    also pays a fixed overhead."""
+    marginal_small = device.prefill_seconds(1000) - device.pass_overhead_s
+    marginal_large = device.prefill_seconds(2000) - device.pass_overhead_s
+    assert marginal_large == pytest.approx(2 * marginal_small)
+
+
+def test_total_prefill_cost_is_sublinear_in_tokens(device: DeviceProfile) -> None:
+    assert device.prefill_seconds(2000) < 2 * device.prefill_seconds(1000)
+
+
+def test_splitting_a_prompt_into_more_passes_costs_more(device: DeviceProfile) -> None:
+    """The reason chunked prefill has a cost, and therefore an optimal size."""
+    one_pass = device.prefill_seconds(2000)
+    four_passes = sum(device.prefill_seconds(500) for _ in range(4))
+    assert four_passes > one_pass
+    assert four_passes == pytest.approx(one_pass + 3 * device.pass_overhead_s)
+
+
+def test_decode_pays_one_pass_overhead_per_iteration(device: DeviceProfile) -> None:
+    one = device.decode_seconds([500])
+    four = device.decode_seconds([500] * 4)
+    # Amortised across the batch, so four sequences cost barely more than one.
+    assert four < one + 2 * device.pass_overhead_s
 
 
 def test_prefill_of_nothing_is_free(device: DeviceProfile) -> None:

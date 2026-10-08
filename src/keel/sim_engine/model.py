@@ -60,6 +60,11 @@ class DeviceProfile:
     only the attention term grows. That asymmetry is the entire reason batching
     pays for itself, and it falls out of the two equations rather than being
     asserted.
+
+    ``pass_overhead_s`` is charged once per forward pass regardless of how many
+    tokens ride along. Without it the model would say a prompt costs the same
+    whether it is prefilled in one pass or eight, which makes chunked prefill
+    free and therefore meaningless.
     """
 
     name: str = "a100-80gb"
@@ -67,18 +72,19 @@ class DeviceProfile:
     flops_per_s: float = 312e12
     memory_bandwidth_bytes_per_s: float = 2_039e9
     kv_bytes_per_token_per_seq: int = 160 * 1024
+    pass_overhead_s: float = 1.5e-4
 
     def prefill_seconds(self, num_tokens: int) -> float:
         if num_tokens <= 0:
             return 0.0
-        return 2.0 * self.parameters * num_tokens / self.flops_per_s
+        return self.pass_overhead_s + 2.0 * self.parameters * num_tokens / self.flops_per_s
 
     def decode_seconds(self, context_lengths: Sequence[int]) -> float:
         if not context_lengths:
             return 0.0
         weight_traffic = self.parameters * 2.0 / self.memory_bandwidth_bytes_per_s
         attention = sum(context_lengths) * self.kv_bytes_per_token_per_seq * 2.0 / self.flops_per_s
-        return weight_traffic + attention
+        return self.pass_overhead_s + weight_traffic + attention
 
     @property
     def kv_bytes_per_token(self) -> int:

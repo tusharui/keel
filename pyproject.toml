@@ -69,6 +69,8 @@ known-first-party = ["keel"]
 # Exceptions here name conditions, not error types. Suffixed with `Error` they
 # stutter (`ContextLengthExceededError`) and read worse at every `except` site.
 "src/keel/errors.py" = ["N818"]
+# Workload generation and jitter need reproducibility, not unpredictability.
+"bench/**" = ["S311"]
 
 [tool.mypy]
 python_version = "3.12"
